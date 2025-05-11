@@ -47,6 +47,12 @@ def wait_llm_reply_complete(driver, old_count, max_wait=60, debug=False):
     raise Exception(f"未检测到新回复完成，已等待{max_wait}秒")
 
 def send_doubao_message(driver, message, wait_time=15, debug=False, max_wait=60, max_retry=2):
+    # 等待发送按钮可用再输入内容
+    send_btn = WebDriverWait(driver, wait_time).until(
+        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-testid="chat_input_send_button"]'))
+    )
+    if debug:
+        print("[DEBUG] 检查到发送按钮可用，准备输入内容")
     # 定位输入框
     input_box = WebDriverWait(driver, wait_time).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, 'textarea[data-testid="chat_input_input"]'))
@@ -76,7 +82,7 @@ def send_doubao_message(driver, message, wait_time=15, debug=False, max_wait=60,
             print("[DEBUG] 点击深度思考按钮")
         time.sleep(0.5)  # 点击后等待
 
-    # 检查发送按钮可点击
+    # 检查发送按钮可点击（再次确认）
     send_btn = WebDriverWait(driver, wait_time).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-testid="chat_input_send_button"]'))
     )
