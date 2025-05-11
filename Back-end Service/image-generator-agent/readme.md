@@ -1,0 +1,3 @@
+该agent用于访问文生图LLM（通过apikey实现）
+
+记得在该项目本目录下创建requirements.txt文件，记录需要使用的安装依赖。
