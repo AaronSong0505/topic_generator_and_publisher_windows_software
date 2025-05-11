@@ -1,0 +1,4 @@
+fastapi
+selenium
+pydantic
+uvicorn 
