@@ -23,9 +23,9 @@ class LLMResponse(BaseModel):
 DOUBAO_URL = "https://www.doubao.com/chat/?channel=bing_sem&source=dbweb_bing_sem_xhs_cpc_pinp_hexin_05&keywordid=77241076291699&msclkid=ad2e454f72001b521c002d6f0d4f804c"
 
 # 生成文案的提示
-COPY_PROMPT_TEMPLATE = "我现在想在小红书上发布一个和{topic}相关的内容，帮我以小红书的风格生成文案"
+COPY_PROMPT_TEMPLATE = "我现在想在小红书上发布一个和{topic}相关的内容，请你帮我以小红书的风格生成合适的文案"
 # 生成图片提示词的提示
-PROMPT_PROMPT_TEMPLATE = "根据你提供的文案和我的需求生成适用于文生图任务的提示词"
+PROMPT_PROMPT_TEMPLATE = "请你根据提供的文案和我的需求，生成适用于文生图任务的大模型提示词"
 
 # 自动安装chromedriver
 chromedriver_autoinstaller.install()
@@ -35,24 +35,23 @@ chromedriver_autoinstaller.install()
 def wait_llm_reply_complete(driver, old_count, max_wait=60, debug=False):
     interval = 0.5
     waited = 0
+    last_text = None
     while waited < max_wait:
         time.sleep(interval)
         waited += interval
         new_msgs = driver.find_elements(By.CSS_SELECTOR, 'div[data-testid="message_text_content"]')
         send_btn = driver.find_element(By.CSS_SELECTOR, 'button[data-testid="chat_input_send_button"]')
-        if len(new_msgs) > old_count and send_btn.get_attribute('aria-disabled') == 'true':
-            if debug:
-                print(f"[DEBUG] 检测到新回复且发送按钮变灰，回复已生成完毕: {new_msgs[-1].text}")
-            return new_msgs[-1].text
+        if send_btn.get_attribute('aria-disabled') == 'true':
+            if new_msgs:
+                if debug:
+                    print(f"[DEBUG] 检测到发送按钮变灰，回复已生成完毕: {new_msgs[-1].text}")
+                # 如果消息数量有增加，或内容有变化，都返回
+                if len(new_msgs) > old_count or (last_text is not None and new_msgs[-1].text != last_text):
+                    return new_msgs[-1].text
+                last_text = new_msgs[-1].text
     raise Exception(f"未检测到新回复完成，已等待{max_wait}秒")
 
 def send_doubao_message(driver, message, wait_time=15, debug=False, max_wait=60, max_retry=2):
-    # 等待发送按钮可用再输入内容
-    send_btn = WebDriverWait(driver, wait_time).until(
-        EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-testid="chat_input_send_button"]'))
-    )
-    if debug:
-        print("[DEBUG] 检查到发送按钮可用，准备输入内容")
     # 定位输入框
     input_box = WebDriverWait(driver, wait_time).until(
         EC.presence_of_element_located((By.CSS_SELECTOR, 'textarea[data-testid="chat_input_input"]'))
@@ -82,7 +81,7 @@ def send_doubao_message(driver, message, wait_time=15, debug=False, max_wait=60,
             print("[DEBUG] 点击深度思考按钮")
         time.sleep(0.5)  # 点击后等待
 
-    # 检查发送按钮可点击（再次确认）
+    # 输入内容后，等待发送按钮可点击
     send_btn = WebDriverWait(driver, wait_time).until(
         EC.element_to_be_clickable((By.CSS_SELECTOR, 'button[data-testid="chat_input_send_button"]'))
     )
